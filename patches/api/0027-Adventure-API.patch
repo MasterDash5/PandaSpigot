@@ -1309,3 +1309,92 @@ index 3c38d857..d065713a 100644
  
      /**
       * Get the number of players sent.
+diff --git a/src/main/java/org/bukkit/inventory/meta/BookMeta.java b/src/main/java/org/bukkit/inventory/meta/BookMeta.java
+index 00175963..84ed2e32 100644
+--- a/src/main/java/org/bukkit/inventory/meta/BookMeta.java
++++ b/src/main/java/org/bukkit/inventory/meta/BookMeta.java
+@@ -8,7 +8,7 @@ import org.bukkit.Material;
+  * Represents a book ({@link Material#BOOK_AND_QUILL} or {@link
+  * Material#WRITTEN_BOOK}) that can have a title, an author, and pages.
+  */
+-public interface BookMeta extends ItemMeta {
++public interface BookMeta extends ItemMeta, net.kyori.adventure.inventory.Book { // PandaSpigot - Adventure
+ 
+     /**
+      * Checks for the existence of a title in the book.
+diff --git a/src/main/java/org/bukkit/inventory/meta/ItemMeta.java b/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
+index d8cc8218..1ee26e3b 100644
+--- a/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
++++ b/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
+@@ -185,4 +185,14 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable {
+ 
+     Spigot spigot();
+     // Spigot end
++
++    // PandaSpigot start - Adventure
++    net.kyori.adventure.text.Component displayName();
++
++    void displayName(net.kyori.adventure.text.Component displayName);
++
++    List<net.kyori.adventure.text.Component> lore();
++
++    void lore(List<net.kyori.adventure.text.Component> lore);
++    // PandaSpigot end - Adventure
+ }
+diff --git a/src/main/java/org/bukkit/scoreboard/Objective.java b/src/main/java/org/bukkit/scoreboard/Objective.java
+index 321aac79..c5fd5d36 100644
+--- a/src/main/java/org/bukkit/scoreboard/Objective.java
++++ b/src/main/java/org/bukkit/scoreboard/Objective.java
+@@ -36,6 +36,27 @@ public interface Objective {
+      */
+     void setDisplayName(String displayName) throws IllegalStateException, IllegalArgumentException;
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the name displayed to players for this objective
++     *
++     * @return this objective's display name
++     * @throws IllegalStateException if this objective has been unregistered
++     */
++    net.kyori.adventure.text.Component displayName() throws IllegalStateException;
++
++    /**
++     * Sets the name displayed to players for this objective.
++     *
++     * @param displayName Display name to set
++     * @throws IllegalStateException if this objective has been unregistered
++     * @throws IllegalArgumentException if displayName is null
++     * @throws IllegalArgumentException if displayName is longer than 32
++     *     characters.
++     */
++    void displayName(net.kyori.adventure.text.Component displayName) throws IllegalStateException, IllegalArgumentException;
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the criteria this objective tracks.
+      *
+diff --git a/src/main/java/org/bukkit/scoreboard/Team.java b/src/main/java/org/bukkit/scoreboard/Team.java
+index 0fdcebd9..dc16c4a2 100644
+--- a/src/main/java/org/bukkit/scoreboard/Team.java
++++ b/src/main/java/org/bukkit/scoreboard/Team.java
+@@ -76,6 +76,20 @@ public interface Team {
+      */
+     void setSuffix(String suffix) throws IllegalStateException, IllegalArgumentException;
+ 
++    // PandaSpigot start - Adventure
++    net.kyori.adventure.text.Component displayName() throws IllegalStateException;
++
++    void displayName(net.kyori.adventure.text.Component displayName) throws IllegalStateException, IllegalArgumentException;
++
++    net.kyori.adventure.text.Component prefix() throws IllegalStateException;
++
++    void prefix(net.kyori.adventure.text.Component prefix) throws IllegalStateException, IllegalArgumentException;
++
++    net.kyori.adventure.text.Component suffix() throws IllegalStateException;
++
++    void suffix(net.kyori.adventure.text.Component suffix) throws IllegalStateException, IllegalArgumentException;
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the team friendly fire state
+      *
