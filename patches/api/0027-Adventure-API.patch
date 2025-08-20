@@ -1,0 +1,1311 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MasterDash5 <github@masterdash5.com>
+Date: Wed, 20 Aug 2025 16:29:45 -0600
+Subject: Adventure API
+
+
+diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
+index 4ae094a9..2d3ebbf6 100644
+--- a/src/main/java/org/bukkit/Bukkit.java
++++ b/src/main/java/org/bukkit/Bukkit.java
+@@ -975,6 +975,39 @@ public final class Bukkit {
+         return server.createInventory(owner, size, title);
+     }
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Creates an empty inventory with the specified type and title. If the type
++     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
++     * otherwise the new inventory has the normal size for its type.<br>
++     * It should be noted that some inventory types do not support titles and
++     * may not render with said titles on the Minecraft client.
++     *
++     * @param owner The holder of the inventory; can be null if there's no holder.
++     * @param type The type of inventory to create.
++     * @param title The title of the inventory, to be displayed when it is viewed.
++     * @return The new inventory.
++     */
++    public static Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title) {
++        return server.createInventory(owner, type, title);
++    }
++
++    /**
++     * Creates an empty inventory of type {@link InventoryType#CHEST} with the
++     * specified size and title.
++     *
++     * @param owner the holder of the inventory, or null to indicate no holder
++     * @param size a multiple of 9 as the size of inventory to create
++     * @param title the title of the inventory, displayed when inventory is
++     *     viewed
++     * @return a new inventory
++     * @throws IllegalArgumentException if the size is not a multiple of 9
++     */
++    public static Inventory createInventory(InventoryHolder owner, int size, net.kyori.adventure.text.Component title) throws IllegalArgumentException {
++        return server.createInventory(owner, size, title);
++    }
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets user-specified limit for number of monsters that can spawn in a
+      * chunk.
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 1ad82f5e..0f07a400 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -47,7 +47,7 @@ import org.bukkit.inventory.meta.ItemMeta;
+ /**
+  * Represents a server implementation.
+  */
+-public interface Server extends PluginMessageRecipient {
++public interface Server extends PluginMessageRecipient, net.kyori.adventure.audience.ForwardingAudience { // PandaSpigot - Adventure
+ 
+     /**
+      * Used for all administrative messages, such as an operator using a
+@@ -254,6 +254,42 @@ public interface Server extends PluginMessageRecipient {
+     public void broadcast(net.md_5.bungee.api.chat.BaseComponent... components);
+     // Paper end
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Sends a message with the MiniMessage format to the server.
++     * <p>
++     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a>
++     * for more information on the format.
++     *
++     * @param message MiniMessage content
++     */
++    default void sendRichMessage(String message) {
++        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message, this));
++    }
++
++    /**
++     * Sends a message with the MiniMessage format to the server.
++     * <p>
++     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a> and <a href="https://docs.advntr.dev/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
++     * for more information on the format.
++     *
++     * @param message MiniMessage content
++     * @param resolvers resolvers to use
++     */
++    default void sendRichMessage(String message, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... resolvers) {
++        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message, this, resolvers));
++    }
++
++    /**
++     * Sends a plain message to the server.
++     *
++     * @param message plain message
++     */
++    default void sendPlainMessage(String message) {
++        this.sendMessage(net.kyori.adventure.text.Component.text(message));
++    }
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the name of the update folder. The update folder is used to safely
+      * update plugins at the right moment on a plugin load.
+@@ -782,6 +818,35 @@ public interface Server extends PluginMessageRecipient {
+      */
+     Inventory createInventory(InventoryHolder owner, int size, String title) throws IllegalArgumentException;
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Creates an empty inventory with the specified type and title. If the type
++     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
++     * otherwise the new inventory has the normal size for its type.<br>
++     * It should be noted that some inventory types do not support titles and
++     * may not render with said titles on the Minecraft client.
++     *
++     * @param owner The holder of the inventory; can be null if there's no holder.
++     * @param type The type of inventory to create.
++     * @param title The title of the inventory, to be displayed when it is viewed.
++     * @return The new inventory.
++     */
++    Inventory createInventory(InventoryHolder owner, InventoryType type, net.kyori.adventure.text.Component title);
++
++    /**
++     * Creates an empty inventory of type {@link InventoryType#CHEST} with the
++     * specified size and title.
++     *
++     * @param owner the holder of the inventory, or null to indicate no holder
++     * @param size a multiple of 9 as the size of inventory to create
++     * @param title the title of the inventory, displayed when inventory is
++     *     viewed
++     * @return a new inventory
++     * @throws IllegalArgumentException if the size is not a multiple of 9
++     */
++    Inventory createInventory(InventoryHolder owner, int size, net.kyori.adventure.text.Component title) throws IllegalArgumentException;
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets user-specified limit for number of monsters that can spawn in a
+      * chunk.
+@@ -842,6 +907,22 @@ public interface Server extends PluginMessageRecipient {
+      */
+     String getShutdownMessage();
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the message that is displayed on the server list.
++     *
++     * @return the servers MOTD
++     */
++    net.kyori.adventure.text.Component motd();
++
++    /**
++     * Gets the default message that is displayed when the server is stopped.
++     *
++     * @return the shutdown message
++     */
++    net.kyori.adventure.text.Component shutdownMessage();
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the current warning state for the server.
+      *
+diff --git a/src/main/java/org/bukkit/World.java b/src/main/java/org/bukkit/World.java
+index e1d61e63..fdadf96e 100644
+--- a/src/main/java/org/bukkit/World.java
++++ b/src/main/java/org/bukkit/World.java
+@@ -20,7 +20,7 @@ import org.bukkit.util.Vector;
+ /**
+  * Represents a world, which may contain entities, chunks and blocks
+  */
+-public interface World extends PluginMessageRecipient, Metadatable {
++public interface World extends PluginMessageRecipient, Metadatable, net.kyori.adventure.audience.ForwardingAudience { // PandaSpigot - Adventure
+ 
+     /**
+      * Gets the {@link Block} at the given coordinates
+@@ -450,6 +450,13 @@ public interface World extends PluginMessageRecipient, Metadatable {
+      */
+     public List<Player> getPlayers();
+ 
++    // PandaSpigot start - Adventure
++    @Override
++    default Iterable<? extends net.kyori.adventure.audience.Audience> audiences() {
++        return this.getPlayers();
++    }
++    // PandaSpigot end - Adventure
++
+     /**
+      * Returns a list of entities within a bounding box centered around a Location.
+      *
+diff --git a/src/main/java/org/bukkit/block/Sign.java b/src/main/java/org/bukkit/block/Sign.java
+index 5d7a633d..87542272 100644
+--- a/src/main/java/org/bukkit/block/Sign.java
++++ b/src/main/java/org/bukkit/block/Sign.java
+@@ -12,6 +12,15 @@ public interface Sign extends BlockState {
+      */
+     public String[] getLines();
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets all the lines of text currently on this sign.
++     *
++     * @return Array of Strings containing each line of text
++     */
++    public java.util.List<net.kyori.adventure.text.Component> lines();
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the line of text at the specified index.
+      * <p>
+@@ -23,6 +32,17 @@ public interface Sign extends BlockState {
+      */
+     public String getLine(int index) throws IndexOutOfBoundsException;
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the line of text at the specified index.
++     *
++     * @param index Line number to get the text from, starting at 0
++     * @throws IndexOutOfBoundsException Thrown when the line does not exist
++     * @return Text on the given line
++     */
++    public net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException;
++    // PandaSpigot end - Adventure
++
+     /**
+      * Sets the line of text at the specified index.
+      * <p>
+@@ -34,4 +54,15 @@ public interface Sign extends BlockState {
+      * @throws IndexOutOfBoundsException If the index is out of the range 0..3
+      */
+     public void setLine(int index, String line) throws IndexOutOfBoundsException;
++
++    // PandaSpigot start - Adventure
++    /**
++     * Sets the line of text at the specified index.
++     *
++     * @param index Line number to set the text at, starting from 0
++     * @param line New text to set at the specified index
++     * @throws IndexOutOfBoundsException If the index is out of the range 0..3
++     */
++    public void line(int index, net.kyori.adventure.text.Component line) throws IndexOutOfBoundsException;
++    // PandaSpigot end - Adventure
+ }
+diff --git a/src/main/java/org/bukkit/command/CommandSender.java b/src/main/java/org/bukkit/command/CommandSender.java
+index 148756b9..d1bce6a5 100644
+--- a/src/main/java/org/bukkit/command/CommandSender.java
++++ b/src/main/java/org/bukkit/command/CommandSender.java
+@@ -3,7 +3,7 @@ package org.bukkit.command;
+ import org.bukkit.Server;
+ import org.bukkit.permissions.Permissible;
+ 
+-public interface CommandSender extends Permissible {
++public interface CommandSender extends Permissible, net.kyori.adventure.audience.Audience { // PandaSpigot - Adventure
+ 
+     /**
+      * Sends this sender a message
+@@ -19,6 +19,47 @@ public interface CommandSender extends Permissible {
+      */
+     public void sendMessage(String[] messages);
+ 
++    // PandaSpigot start - Adventure
++    @Override
++    default void sendMessage(net.kyori.adventure.identity.Identity source, net.kyori.adventure.text.Component message, net.kyori.adventure.audience.MessageType type) {
++        this.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
++    }
++
++    /**
++     * Sends a message with the MiniMessage format to the command sender.
++     * <p>
++     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a>
++     * for more information on the format.
++     *
++     * @param message MiniMessage content
++     */
++    default void sendRichMessage(String message) {
++        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message));
++    }
++
++    /**
++     * Sends a message with the MiniMessage format to the command sender.
++     * <p>
++     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a> and <a href="https://docs.advntr.dev/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
++     * for more information on the format.
++     *
++     * @param message MiniMessage content
++     * @param resolvers resolvers to use
++     */
++    default void sendRichMessage(String message, net.kyori.adventure.text.minimessage.tag.resolver.TagResolver... resolvers) {
++        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message, resolvers));
++    }
++
++    /**
++     * Sends a plain message to the command sender.
++     *
++     * @param message plain message
++     */
++    default void sendPlainMessage(String message) {
++        this.sendMessage(net.kyori.adventure.text.Component.text(message));
++    }
++    // PandaSpigot end - Adventure
++
+     /**
+      * Returns the server instance that this command is running on
+      *
+diff --git a/src/main/java/org/bukkit/command/ProxiedCommandSender.java b/src/main/java/org/bukkit/command/ProxiedCommandSender.java
+index 24c4ebad..ba31adaf 100644
+--- a/src/main/java/org/bukkit/command/ProxiedCommandSender.java
++++ b/src/main/java/org/bukkit/command/ProxiedCommandSender.java
+@@ -1,7 +1,7 @@
+ 
+ package org.bukkit.command;
+ 
+-public interface ProxiedCommandSender extends CommandSender {
++public interface ProxiedCommandSender extends CommandSender, net.kyori.adventure.audience.ForwardingAudience.Single { // PandaSpigot - Adventure
+ 
+     /**
+      * Returns the CommandSender which triggered this proxied command
+@@ -17,4 +17,16 @@ public interface ProxiedCommandSender extends CommandSender {
+      */
+     CommandSender getCallee();
+ 
++    // PandaSpigot start - Adventure
++    @Override
++    default void sendMessage(net.kyori.adventure.identity.Identity source, net.kyori.adventure.text.Component message, net.kyori.adventure.audience.MessageType type) {
++        net.kyori.adventure.audience.ForwardingAudience.Single.super.sendMessage(source, message, type);
++    }
++
++    @Override
++    default net.kyori.adventure.audience.Audience audience() {
++        return this.getCaller();
++    }
++    // PandaSpigot end - Adventure
++
+ }
+diff --git a/src/main/java/org/bukkit/entity/Player.java b/src/main/java/org/bukkit/entity/Player.java
+index ec618758..747c680e 100644
+--- a/src/main/java/org/bukkit/entity/Player.java
++++ b/src/main/java/org/bukkit/entity/Player.java
+@@ -26,7 +26,7 @@ import org.github.paperspigot.Title;
+ /**
+  * Represents a player, connected or not
+  */
+-public interface Player extends HumanEntity, Conversable, CommandSender, OfflinePlayer, PluginMessageRecipient {
++public interface Player extends HumanEntity, Conversable, CommandSender, OfflinePlayer, PluginMessageRecipient, net.kyori.adventure.identity.Identified { // PandaSpigot - Adventure
+ 
+     /**
+      * Gets the "friendly" name to display of this player. This may include
+@@ -39,6 +39,15 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public String getDisplayName();
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the "friendly" name to display of this player.
++     *
++     * @return the display name
++     */
++    public net.kyori.adventure.text.Component displayName();
++    // PandaSpigot end - Adventure
++
+     /**
+      * Sets the "friendly" name to display of this player. This may include
+      * color.
+@@ -50,6 +59,15 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public void setDisplayName(String name);
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Sets the "friendly" name to display of this player.
++     *
++     * @param displayName the display name to set.
++     */
++    public void displayName(net.kyori.adventure.text.Component displayName);
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the name that is shown on the player list.
+      *
+@@ -57,6 +75,15 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public String getPlayerListName();
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the currently displayed player list header for this player.
++     *
++     * @return player list header or null
++     */
++    public net.kyori.adventure.text.Component playerListName();
++    // PandaSpigot end - Adventure
++
+     /**
+      * Sets the name that is shown on the in-game player list.
+      * <p>
+@@ -80,6 +107,17 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public void setPlayerListName(String name);
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Sets the name that is shown on the in-game player list.
++     * <p>
++     * If the value is null, the name will be identical to {@link #getName()}.
++     *
++     * @param name new player list name
++     */
++    public void playerListName(net.kyori.adventure.text.Component name);
++    // PandaSpigot end - Adventure
++
+     /**
+      * Set the target of the player's compass.
+      *
+@@ -115,6 +153,15 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public void kickPlayer(String message);
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Kicks player with custom kick message.
++     *
++     * @param message kick message
++     */
++    public void kick(net.kyori.adventure.text.Component message);
++    // PandaSpigot end - Adventure
++
+     /**
+      * Says a message (or runs a command).
+      *
+@@ -364,6 +411,22 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+      */
+     public void setPlayerListHeaderFooter(net.md_5.bungee.api.chat.BaseComponent header, net.md_5.bungee.api.chat.BaseComponent footer);
+ 
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the currently displayed player list header for this player.
++     *
++     * @return player list header or null
++     */
++    public net.kyori.adventure.text.Component playerListHeader();
++
++    /**
++     * Gets the currently displayed player list footer for this player.
++     *
++     * @return player list footer or null
++     */
++    public net.kyori.adventure.text.Component playerListFooter();
++    // PandaSpigot end - Adventure
++
+     /**
+      * Update the times for titles displayed to the player
+      *
+@@ -1362,4 +1425,10 @@ public interface Player extends HumanEntity, Conversable, CommandSender, Offline
+ 
+     Spigot spigot();
+     // Spigot end
++
++    // PandaSpigot start - Adventure
++    @Override
++    default net.kyori.adventure.identity.Identity identity() {
++        return net.kyori.adventure.identity.Identity.identity(this.getUniqueId());
++    }
+ }
+diff --git a/src/main/java/org/bukkit/event/block/SignChangeEvent.java b/src/main/java/org/bukkit/event/block/SignChangeEvent.java
+index 83188cf5..8b0e9848 100644
+--- a/src/main/java/org/bukkit/event/block/SignChangeEvent.java
++++ b/src/main/java/org/bukkit/event/block/SignChangeEvent.java
+@@ -14,13 +14,26 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
+     private static final HandlerList handlers = new HandlerList();
+     private boolean cancel = false;
+     private final Player player;
+-    private final String[] lines;
++    private final java.util.List<net.kyori.adventure.text.Component> lines; // PandaSpigot - Adventure
+ 
+-    public SignChangeEvent(final Block theBlock, final Player thePlayer, final String[] theLines) {
++    // PandaSpigot start - Adventure
++    public SignChangeEvent(final Block theBlock, final Player thePlayer, final java.util.List<net.kyori.adventure.text.Component> theLines) {
+         super(theBlock);
+         this.player = thePlayer;
+         this.lines = theLines;
+     }
++    // PandaSpigot end - Adventure
++
++    public SignChangeEvent(final Block theBlock, final Player thePlayer, final String[] theLines) {
++        super(theBlock);
++        this.player = thePlayer;
++        // PandaSpigot start - Adventure
++        this.lines = new java.util.ArrayList<>();
++        for (String line : theLines) {
++            lines.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line));
++        }
++        //PandaSpigot end - Adventure
++    }
+ 
+     /**
+      * Gets the player changing the sign involved in this event.
+@@ -31,15 +44,51 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
+         return player;
+     }
+ 
++    // PandaSpigot start - Adventure
+     /**
+      * Gets all of the lines of text from the sign involved in this event.
+      *
+      * @return the String array for the sign's lines new text
+      */
+-    public String[] getLines() {
++    public java.util.List<net.kyori.adventure.text.Component> lines() {
+         return lines;
+     }
+ 
++    /**
++     * Gets a single line of text from the sign involved in this event.
++     *
++     * @param index index of the line to get
++     * @return the String containing the line of text associated with the
++     *     provided index
++     * @throws IndexOutOfBoundsException thrown when the provided index is {@literal > 3
++     *     or < 0}
++     */
++    public net.kyori.adventure.text.Component line(int index) throws IndexOutOfBoundsException {
++        return lines.get(index);
++    }
++
++    /**
++     * Sets a single line for the sign involved in this event
++     *
++     * @param index index of the line to set
++     * @param line text to set
++     * @throws IndexOutOfBoundsException thrown when the provided index is {@literal > 3
++     *     or < 0}
++     */
++    public void line(int index, net.kyori.adventure.text.Component line) throws IndexOutOfBoundsException {
++        lines.set(index, line);
++    }
++    // PandaSpigot end - Adventure
++
++    /**
++     * Gets all of the lines of text from the sign involved in this event.
++     *
++     * @return the String array for the sign's lines new text
++     */
++    public String[] getLines() {
++        return lines.stream().map(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection()::serialize).toArray(String[]::new); // PandaSpigot - Adventure
++    }
++
+     /**
+      * Gets a single line of text from the sign involved in this event.
+      *
+@@ -50,7 +99,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
+      *     or < 0}
+      */
+     public String getLine(int index) throws IndexOutOfBoundsException {
+-        return lines[index];
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(lines.get(index)); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -62,7 +111,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
+      *     or < 0}
+      */
+     public void setLine(int index, String line) throws IndexOutOfBoundsException {
+-        lines[index] = line;
++        lines.set(index, line != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : null); // PandaSpigot - Adventure
+     }
+ 
+     public boolean isCancelled() {
+diff --git a/src/main/java/org/bukkit/event/entity/PlayerDeathEvent.java b/src/main/java/org/bukkit/event/entity/PlayerDeathEvent.java
+index aad03549..d97f2404 100644
+--- a/src/main/java/org/bukkit/event/entity/PlayerDeathEvent.java
++++ b/src/main/java/org/bukkit/event/entity/PlayerDeathEvent.java
+@@ -10,12 +10,30 @@ import org.bukkit.inventory.ItemStack;
+  */
+ public class PlayerDeathEvent extends EntityDeathEvent {
+     private int newExp = 0;
+-    private String deathMessage = "";
++    private net.kyori.adventure.text.Component deathMessage; // PandaSpigot - Adventure
+     private int newLevel = 0;
+     private int newTotalExp = 0;
+     private boolean keepLevel = false;
+     private boolean keepInventory = false;
+ 
++    // PandaSpigot start - Adventure
++    public PlayerDeathEvent(final Player player, final List<ItemStack> drops, final int droppedExp, final net.kyori.adventure.text.Component deathMessage) {
++        this(player, drops, droppedExp, 0, deathMessage);
++    }
++
++    public PlayerDeathEvent(final Player player, final List<ItemStack> drops, final int droppedExp, final int newExp, final net.kyori.adventure.text.Component deathMessage) {
++        this(player, drops, droppedExp, newExp, 0, 0, deathMessage);
++    }
++
++    public PlayerDeathEvent(final Player player, final List<ItemStack> drops, final int droppedExp, final int newExp, final int newTotalExp, final int newLevel, final net.kyori.adventure.text.Component deathMessage) {
++        super(player, drops, droppedExp);
++        this.newExp = newExp;
++        this.newTotalExp = newTotalExp;
++        this.newLevel = newLevel;
++        this.deathMessage = deathMessage;
++    }
++    // PandaSpigot end - Adventure
++
+     public PlayerDeathEvent(final Player player, final List<ItemStack> drops, final int droppedExp, final String deathMessage) {
+         this(player, drops, droppedExp, 0, deathMessage);
+     }
+@@ -29,7 +47,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
+         this.newExp = newExp;
+         this.newTotalExp = newTotalExp;
+         this.newLevel = newLevel;
+-        this.deathMessage = deathMessage;
++        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(deathMessage); // PandaSpigot - Adventure
+     }
+ 
+     @Override
+@@ -43,7 +61,7 @@ public class PlayerDeathEvent extends EntityDeathEvent {
+      * @param deathMessage Message to appear to other players on the server.
+      */
+     public void setDeathMessage(String deathMessage) {
+-        this.deathMessage = deathMessage;
++        this.deathMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(deathMessage); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -52,8 +70,28 @@ public class PlayerDeathEvent extends EntityDeathEvent {
+      * @return Message to appear to other players on the server.
+      */
+     public String getDeathMessage() {
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(deathMessage); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Set the death message that will appear to everyone on the server.
++     *
++     * @param deathMessage Message to appear to other players on the server.
++     */
++    public void deathMessage(net.kyori.adventure.text.Component deathMessage) {
++        this.deathMessage = deathMessage;
++    }
++
++    /**
++     * Get the death message that will appear to everyone on the server.
++     *
++     * @return Message to appear to other players on the server.
++     */
++    public net.kyori.adventure.text.Component deathMessage() {
+         return deathMessage;
+     }
++    // PandaSpigot end - Adventure
+ 
+     /**
+      * Gets how much EXP the Player should have at respawn.
+diff --git a/src/main/java/org/bukkit/event/player/AsyncPlayerPreLoginEvent.java b/src/main/java/org/bukkit/event/player/AsyncPlayerPreLoginEvent.java
+index 62562d35..a86615ba 100644
+--- a/src/main/java/org/bukkit/event/player/AsyncPlayerPreLoginEvent.java
++++ b/src/main/java/org/bukkit/event/player/AsyncPlayerPreLoginEvent.java
+@@ -14,7 +14,7 @@ import org.bukkit.event.HandlerList;
+ public class AsyncPlayerPreLoginEvent extends Event {
+     private static final HandlerList handlers = new HandlerList();
+     private Result result;
+-    private String message;
++    private net.kyori.adventure.text.Component message; // PandaSpigot - Adventure
+     //private final String name; // PandaSpigot - Not used anymore
+     private final InetAddress ipAddress;
+     //private final UUID uniqueId; // PandaSpigot - Not used anymore
+@@ -51,7 +51,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
+         this.profile = profile;
+     // PandaSpigot end
+         this.result = Result.ALLOWED;
+-        this.message = "";
++        this.message = net.kyori.adventure.text.Component.empty(); // PandaSpigot - Adventure
+         //this.name = name; // PandaSpigot - Not used anymore
+         this.ipAddress = ipAddress;
+         //this.uniqueId = uniqueId; // PandaSpigot - Not used anymore
+@@ -108,7 +108,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
+      * @return Current kick message
+      */
+     public String getKickMessage() {
+-        return message;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -117,7 +117,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
+      * @param message New kick message
+      */
+     public void setKickMessage(final String message) {
+-        this.message = message;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -125,7 +125,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
+      */
+     public void allow() {
+         result = Result.ALLOWED;
+-        message = "";
++        message = net.kyori.adventure.text.Component.empty(); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -136,7 +136,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
+      */
+     public void disallow(final Result result, final String message) {
+         this.result = result;
+-        this.message = message;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -150,9 +150,56 @@ public class AsyncPlayerPreLoginEvent extends Event {
+      */
+     @Deprecated
+     public void disallow(final PlayerPreLoginEvent.Result result, final String message) {
++        this.result = result == null ? null : Result.valueOf(result.name());
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the current kick message that will be used if getResult() !=
++     * Result.ALLOWED
++     *
++     * @return Current kick message
++     */
++    public net.kyori.adventure.text.Component kickMessage() {
++        return this.message;
++    }
++
++    /**
++     * Sets the kick message to display if getResult() != Result.ALLOWED
++     *
++     * @param message New kick message
++     */
++    public void kickMessage(net.kyori.adventure.text.Component message) {
++        this.message = message;
++    }
++
++    /**
++     * Disallows the player from logging in, with the given reason
++     *
++     * @param result New result for disallowing the player
++     * @param message Kick message to display to the user
++     */
++    public void disallow(final Result result, final net.kyori.adventure.text.Component message) {
++        this.result = result;
++        this.message = message;
++    }
++
++    /**
++     * Disallows the player from logging in, with the given reason
++     *
++     * @param result New result for disallowing the player
++     * @param message Kick message to display to the user
++     * @deprecated This method uses a deprecated enum from {@link
++     *     PlayerPreLoginEvent}
++     * @see #disallow(Result, String)
++     */
++    @Deprecated
++    public void disallow(final PlayerPreLoginEvent.Result result, final net.kyori.adventure.text.Component message) {
+         this.result = result == null ? null : Result.valueOf(result.name());
+         this.message = message;
+     }
++    // PandaSpigot end - Adventure
+ 
+     /**
+      * Gets the player's name.
+diff --git a/src/main/java/org/bukkit/event/player/PlayerJoinEvent.java b/src/main/java/org/bukkit/event/player/PlayerJoinEvent.java
+index e7481f92..f004444b 100644
+--- a/src/main/java/org/bukkit/event/player/PlayerJoinEvent.java
++++ b/src/main/java/org/bukkit/event/player/PlayerJoinEvent.java
+@@ -8,12 +8,19 @@ import org.bukkit.event.HandlerList;
+  */
+ public class PlayerJoinEvent extends PlayerEvent {
+     private static final HandlerList handlers = new HandlerList();
+-    private String joinMessage;
++    private net.kyori.adventure.text.Component joinMessage; // PandaSpigot - Adventure
+ 
+-    public PlayerJoinEvent(final Player playerJoined, final String joinMessage) {
++    // PandaSpigot start - Adventure
++    public PlayerJoinEvent(final Player playerJoined, final net.kyori.adventure.text.Component joinMessage) {
+         super(playerJoined);
+         this.joinMessage = joinMessage;
+     }
++    // PandaSpigot end - Adventure
++
++    public PlayerJoinEvent(final Player playerJoined, final String joinMessage) {
++        super(playerJoined);
++        this.joinMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage); // PandaSpigot - Adventure
++    }
+ 
+     /**
+      * Gets the join message to send to all online players
+@@ -21,7 +28,7 @@ public class PlayerJoinEvent extends PlayerEvent {
+      * @return string join message
+      */
+     public String getJoinMessage() {
+-        return joinMessage;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(joinMessage); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -30,8 +37,28 @@ public class PlayerJoinEvent extends PlayerEvent {
+      * @param joinMessage join message
+      */
+     public void setJoinMessage(String joinMessage) {
++        this.joinMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(joinMessage); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the join message to send to all online players
++     *
++     * @return string join message
++     */
++    public net.kyori.adventure.text.Component joinMessage() {
++        return joinMessage;
++    }
++
++    /**
++     * Sets the join message to send to all online players
++     *
++     * @param joinMessage join message
++     */
++    public void joinMessage(net.kyori.adventure.text.Component joinMessage) {
+         this.joinMessage = joinMessage;
+     }
++    // PandaSpigot end - Adventure
+ 
+     @Override
+     public HandlerList getHandlers() {
+diff --git a/src/main/java/org/bukkit/event/player/PlayerKickEvent.java b/src/main/java/org/bukkit/event/player/PlayerKickEvent.java
+index 39e81b67..3e4d7f7a 100644
+--- a/src/main/java/org/bukkit/event/player/PlayerKickEvent.java
++++ b/src/main/java/org/bukkit/event/player/PlayerKickEvent.java
+@@ -9,16 +9,29 @@ import org.bukkit.event.HandlerList;
+  */
+ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
+     private static final HandlerList handlers = new HandlerList();
+-    private String leaveMessage;
+-    private String kickReason;
++    // PandaSpigot start - Adventure
++    private net.kyori.adventure.text.Component leaveMessage;
++    private net.kyori.adventure.text.Component kickReason;
++    // PandaSpigot end - Adventure
+     private Boolean cancel;
+ 
+-    public PlayerKickEvent(final Player playerKicked, final String kickReason, final String leaveMessage) {
++    // PandaSpigot start - Adventure
++    public PlayerKickEvent(final Player playerKicked, final net.kyori.adventure.text.Component kickReason, final net.kyori.adventure.text.Component leaveMessage) {
+         super(playerKicked);
+         this.kickReason = kickReason;
+         this.leaveMessage = leaveMessage;
+         this.cancel = false;
+     }
++    // PandaSpigot end - Adventure
++
++    public PlayerKickEvent(final Player playerKicked, final String kickReason, final String leaveMessage) {
++        super(playerKicked);
++        // PandaSpigot start - Adventure
++        this.kickReason = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason);
++        this.leaveMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage);
++        // PandaSpigot end - Adventure
++        this.cancel = false;
++    }
+ 
+     /**
+      * Gets the reason why the player is getting kicked
+@@ -26,7 +39,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
+      * @return string kick reason
+      */
+     public String getReason() {
+-        return kickReason;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(kickReason); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -35,7 +48,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
+      * @return string kick reason
+      */
+     public String getLeaveMessage() {
+-        return leaveMessage;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(leaveMessage); // PandaSpigot - Adventure
+     }
+ 
+     public boolean isCancelled() {
+@@ -52,7 +65,7 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
+      * @param kickReason kick reason
+      */
+     public void setReason(String kickReason) {
+-        this.kickReason = kickReason;
++        this.kickReason = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(kickReason); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -61,9 +74,47 @@ public class PlayerKickEvent extends PlayerEvent implements Cancellable {
+      * @param leaveMessage leave message
+      */
+     public void setLeaveMessage(String leaveMessage) {
++        this.leaveMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(leaveMessage); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the leave message send to all online players
++     *
++     * @return string kick reason
++     */
++    public net.kyori.adventure.text.Component leaveMessage() {
++        return leaveMessage;
++    }
++
++    /**
++     * Sets the leave message send to all online players
++     *
++     * @param leaveMessage leave message
++     */
++    public void leaveMessage(net.kyori.adventure.text.Component leaveMessage) {
+         this.leaveMessage = leaveMessage;
+     }
+ 
++    /**
++     * Gets the reason why the player is getting kicked
++     *
++     * @return string kick reason
++     */
++    public net.kyori.adventure.text.Component reason() {
++        return kickReason;
++    }
++
++    /**
++     * Sets the reason why the player is getting kicked
++     *
++     * @param kickReason kick reason
++     */
++    public void reason(net.kyori.adventure.text.Component kickReason) {
++        this.kickReason = kickReason;
++    }
++    // PandaSpigot end - Adventure
++
+     @Override
+     public HandlerList getHandlers() {
+         return handlers;
+diff --git a/src/main/java/org/bukkit/event/player/PlayerLoginEvent.java b/src/main/java/org/bukkit/event/player/PlayerLoginEvent.java
+index 4bc024ff..8915108a 100644
+--- a/src/main/java/org/bukkit/event/player/PlayerLoginEvent.java
++++ b/src/main/java/org/bukkit/event/player/PlayerLoginEvent.java
+@@ -13,7 +13,7 @@ public class PlayerLoginEvent extends PlayerEvent {
+     private final InetAddress address;
+     private final String hostname;
+     private Result result = Result.ALLOWED;
+-    private String message = "";
++    private net.kyori.adventure.text.Component message; // PandaSpigot - Adventure
+     private final InetAddress realAddress; // Spigot
+ 
+     /**
+@@ -80,10 +80,28 @@ public class PlayerLoginEvent extends PlayerEvent {
+      * @param message The message to be displayed if result denies login
+      */
+     public PlayerLoginEvent(final Player player, String hostname, final InetAddress address, final Result result, final String message, final InetAddress realAddress) { // Spigot
++        this(player, hostname, address, realAddress); // Spigot
++        this.result = result;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * This constructor pre-configures the event with a result and message
++     *
++     * @param player The {@link Player} for this event
++     * @param hostname The hostname that was used to connect to the server
++     * @param address The address the player used to connect, provided for
++     *     timing issues
++     * @param result The result status for this event
++     * @param message The message to be displayed if result denies login
++     */
++    public PlayerLoginEvent(final Player player, String hostname, final InetAddress address, final Result result, final net.kyori.adventure.text.Component message, final InetAddress realAddress) { // Spigot
+         this(player, hostname, address, realAddress); // Spigot
+         this.result = result;
+         this.message = message;
+     }
++    // PandaSpigot end - Adventure
+ 
+     // Spigot start
+     /**
+@@ -121,7 +139,7 @@ public class PlayerLoginEvent extends PlayerEvent {
+      * @return Current kick message
+      */
+     public String getKickMessage() {
+-        return message;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -130,9 +148,41 @@ public class PlayerLoginEvent extends PlayerEvent {
+      * @param message New kick message
+      */
+     public void setKickMessage(final String message) {
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the current kick message that will be used if getResult() !=
++     * Result.ALLOWED
++     *
++     * @return Current kick message
++     */
++    public net.kyori.adventure.text.Component kickMessage() {
++        return message;
++    }
++
++    /**
++     * Sets the kick message to display if getResult() != Result.ALLOWED
++     *
++     * @param message New kick message
++     */
++    public void kickMessage(net.kyori.adventure.text.Component message) {
+         this.message = message;
+     }
+ 
++    /**
++     * Disallows the player from logging in, with the given reason
++     *
++     * @param result New result for disallowing the player
++     * @param message Kick message to display to the user
++     */
++    public void disallow(final Result result, final net.kyori.adventure.text.Component message) {
++        this.result = result;
++        this.message = message;
++    }
++    // PandaSpigot end - Adventure
++
+     /**
+      * Gets the hostname that the player used to connect to the server, or
+      * blank if unknown
+@@ -148,7 +198,7 @@ public class PlayerLoginEvent extends PlayerEvent {
+      */
+     public void allow() {
+         result = Result.ALLOWED;
+-        message = "";
++        message = net.kyori.adventure.text.Component.empty();
+     }
+ 
+     /**
+@@ -159,7 +209,7 @@ public class PlayerLoginEvent extends PlayerEvent {
+      */
+     public void disallow(final Result result, final String message) {
+         this.result = result;
+-        this.message = message;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+diff --git a/src/main/java/org/bukkit/event/player/PlayerPreLoginEvent.java b/src/main/java/org/bukkit/event/player/PlayerPreLoginEvent.java
+index e8553f0f..2f5ebce3 100644
+--- a/src/main/java/org/bukkit/event/player/PlayerPreLoginEvent.java
++++ b/src/main/java/org/bukkit/event/player/PlayerPreLoginEvent.java
+@@ -19,7 +19,7 @@ import org.bukkit.event.HandlerList;
+ public class PlayerPreLoginEvent extends Event {
+     private static final HandlerList handlers = new HandlerList();
+     private Result result;
+-    private String message;
++    private net.kyori.adventure.text.Component message; // PandaSpigot - Adventure
+     private final String name;
+     private final InetAddress ipAddress;
+     private final UUID uniqueId;
+@@ -31,7 +31,7 @@ public class PlayerPreLoginEvent extends Event {
+ 
+     public PlayerPreLoginEvent(final String name, final InetAddress ipAddress, final UUID uniqueId) {
+         this.result = Result.ALLOWED;
+-        this.message = "";
++        this.message = net.kyori.adventure.text.Component.empty(); // PandaSpigot - Adventure
+         this.name = name;
+         this.ipAddress = ipAddress;
+         this.uniqueId = uniqueId;
+@@ -62,7 +62,7 @@ public class PlayerPreLoginEvent extends Event {
+      * @return Current kick message
+      */
+     public String getKickMessage() {
+-        return message;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -71,7 +71,7 @@ public class PlayerPreLoginEvent extends Event {
+      * @param message New kick message
+      */
+     public void setKickMessage(final String message) {
+-        this.message = message;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -79,7 +79,7 @@ public class PlayerPreLoginEvent extends Event {
+      */
+     public void allow() {
+         result = Result.ALLOWED;
+-        message = "";
++        message = net.kyori.adventure.text.Component.empty(); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -89,9 +89,41 @@ public class PlayerPreLoginEvent extends Event {
+      * @param message Kick message to display to the user
+      */
+     public void disallow(final Result result, final String message) {
++        this.result = result;
++        this.message = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the current kick message that will be used if getResult() !=
++     * Result.ALLOWED
++     *
++     * @return Current kick message
++     */
++    public net.kyori.adventure.text.Component kickMessage() {
++        return message;
++    }
++
++    /**
++     * Sets the kick message to display if getResult() != Result.ALLOWED
++     *
++     * @param message New kick message
++     */
++    public void kickMessage(net.kyori.adventure.text.Component message) {
++        this.message = message;
++    }
++
++    /**
++     * Disallows the player from logging in, with the given reason
++     *
++     * @param result New result for disallowing the player
++     * @param message Kick message to display to the user
++     */
++    public void disallow(final Result result, final net.kyori.adventure.text.Component message) {
+         this.result = result;
+         this.message = message;
+     }
++    // PandaSpigot end - Adventure
+ 
+     /**
+      * Gets the player's name.
+diff --git a/src/main/java/org/bukkit/event/player/PlayerQuitEvent.java b/src/main/java/org/bukkit/event/player/PlayerQuitEvent.java
+index 5c8dc1b9..667f949a 100644
+--- a/src/main/java/org/bukkit/event/player/PlayerQuitEvent.java
++++ b/src/main/java/org/bukkit/event/player/PlayerQuitEvent.java
+@@ -8,12 +8,19 @@ import org.bukkit.event.HandlerList;
+  */
+ public class PlayerQuitEvent extends PlayerEvent {
+     private static final HandlerList handlers = new HandlerList();
+-    private String quitMessage;
++    private net.kyori.adventure.text.Component quitMessage; // PandaSpigot - Adventure
+ 
+-    public PlayerQuitEvent(final Player who, final String quitMessage) {
++    // PandaSpigot start - Adventure
++    public PlayerQuitEvent(final Player who, final net.kyori.adventure.text.Component quitMessage) {
+         super(who);
+         this.quitMessage = quitMessage;
+     }
++    // PandaSpigot end - Adventure
++
++    public PlayerQuitEvent(final Player who, final String quitMessage) {
++        super(who);
++        this.quitMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage); // PandaSpigot - Adventure
++    }
+ 
+     /**
+      * Gets the quit message to send to all online players
+@@ -21,7 +28,7 @@ public class PlayerQuitEvent extends PlayerEvent {
+      * @return string quit message
+      */
+     public String getQuitMessage() {
+-        return quitMessage;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(quitMessage); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -30,8 +37,28 @@ public class PlayerQuitEvent extends PlayerEvent {
+      * @param quitMessage quit message
+      */
+     public void setQuitMessage(String quitMessage) {
++        this.quitMessage = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(quitMessage); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Gets the quit message to send to all online players
++     *
++     * @return string quit message
++     */
++    public net.kyori.adventure.text.Component quitMessage() {
++        return quitMessage;
++    }
++
++    /**
++     * Sets the quit message to send to all online players
++     *
++     * @param quitMessage quit message
++     */
++    public void quitMessage(net.kyori.adventure.text.Component quitMessage) {
+         this.quitMessage = quitMessage;
+     }
++    // PandaSpigot end - Adventure
+ 
+     @Override
+     public HandlerList getHandlers() {
+diff --git a/src/main/java/org/bukkit/event/server/ServerListPingEvent.java b/src/main/java/org/bukkit/event/server/ServerListPingEvent.java
+index 3c38d857..d065713a 100644
+--- a/src/main/java/org/bukkit/event/server/ServerListPingEvent.java
++++ b/src/main/java/org/bukkit/event/server/ServerListPingEvent.java
+@@ -16,7 +16,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
+     private static final int MAGIC_PLAYER_COUNT = Integer.MIN_VALUE;
+     private static final HandlerList handlers = new HandlerList();
+     private final InetAddress address;
+-    private String motd;
++    private net.kyori.adventure.text.Component motd; // PandaSpigot - Adventure
+     private final int numPlayers;
+     private int maxPlayers;
+ 
+@@ -24,7 +24,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
+         super(); // Paper - Is this event being fired async?
+         Validate.isTrue(numPlayers >= 0, "Cannot have negative number of players online", numPlayers);
+         this.address = address;
+-        this.motd = motd;
++        this.motd = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(motd); // PandaSpigot - Adventure
+         this.numPlayers = numPlayers;
+         this.maxPlayers = maxPlayers;
+     }
+@@ -39,12 +39,40 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
+      * @param maxPlayers the max number of players
+      */
+     protected ServerListPingEvent(final InetAddress address, final String motd, final int maxPlayers) {
++        super(); // Paper - Is this event being fired async?
++        this.numPlayers = MAGIC_PLAYER_COUNT;
++        this.address = address;
++        this.motd = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(motd); // PandaSpigot - Adventure
++        this.maxPlayers = maxPlayers;
++    }
++
++    // PandaSpigot start - Adventure
++    public ServerListPingEvent(final InetAddress address, final net.kyori.adventure.text.Component motd, final int numPlayers, final int maxPlayers) {
++        super(); // Paper - Is this event being fired async?
++        Validate.isTrue(numPlayers >= 0, "Cannot have negative number of players online", numPlayers);
++        this.address = address;
++        this.motd = motd;
++        this.numPlayers = numPlayers;
++        this.maxPlayers = maxPlayers;
++    }
++
++    /**
++     * This constructor is intended for implementations that provide the
++     * {@link #iterator()} method, thus provided the {@link #getNumPlayers()}
++     * count.
++     *
++     * @param address the address of the pinger
++     * @param motd the message of the day
++     * @param maxPlayers the max number of players
++     */
++    protected ServerListPingEvent(final InetAddress address, final net.kyori.adventure.text.Component motd, final int maxPlayers) {
+         super(); // Paper - Is this event being fired async?
+         this.numPlayers = MAGIC_PLAYER_COUNT;
+         this.address = address;
+         this.motd = motd;
+         this.maxPlayers = maxPlayers;
+     }
++    // PandaSpigot end - Adventure
+ 
+     /**
+      * Get the address the ping is coming from.
+@@ -61,7 +89,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
+      * @return the message of the day
+      */
+     public String getMotd() {
+-        return motd;
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(motd); // PandaSpigot - Adventure
+     }
+ 
+     /**
+@@ -70,8 +98,28 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
+      * @param motd the message of the day
+      */
+     public void setMotd(String motd) {
++        this.motd = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(motd); // PandaSpigot - Adventure
++    }
++
++    // PandaSpigot start - Adventure
++    /**
++     * Get the message of the day message.
++     *
++     * @return the message of the day
++     */
++    public net.kyori.adventure.text.Component motd() {
++        return motd;
++    }
++
++    /**
++     * Change the message of the day message.
++     *
++     * @param motd the message of the day
++     */
++    public void motd(net.kyori.adventure.text.Component motd) {
+         this.motd = motd;
+     }
++    // PandaSpigot end - Adventure
+ 
+     /**
+      * Get the number of players sent.
