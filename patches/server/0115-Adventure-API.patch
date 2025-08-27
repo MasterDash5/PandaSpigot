@@ -1,0 +1,201 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: MasterDash5 <github@masterdash5.com>
+Date: Wed, 20 Aug 2025 16:29:45 -0600
+Subject: Adventure API
+
+
+diff --git a/src/main/java/com/hpfxd/pandaspigot/adventure/AdventureComponent.java b/src/main/java/com/hpfxd/pandaspigot/adventure/AdventureComponent.java
+index d34eb63b4..4c4f66f43 100644
+--- a/src/main/java/com/hpfxd/pandaspigot/adventure/AdventureComponent.java
++++ b/src/main/java/com/hpfxd/pandaspigot/adventure/AdventureComponent.java
+@@ -1,4 +1,32 @@
+ package com.hpfxd.pandaspigot.adventure;
+ 
+-public class AdventureComponent {
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.TextComponent;
++import net.minecraft.server.IChatBaseComponent;
++
++public final class AdventureComponent implements IChatBaseComponent {
++
++    private final Component wrapped;
++
++    public AdventureComponent(Component wrapped) {
++        this.wrapped = wrapped;
++    }
++
++    public Component getWrapped() {
++        return wrapped;
++    }
++
++    private IChatBaseComponent deepConverted() {
++        return PandaAdventure.WRAPPER_AWARE_SERIALIZER.serialize(wrapped);
++    }
++
++    @Override
++    public String getText() {
++        if (wrapped instanceof TextComponent) {
++            return ((TextComponent) wrapped).content();
++        }
++
++        return deepConverted().getText();
++    }
++
+ }
+diff --git a/src/main/java/com/hpfxd/pandaspigot/adventure/NBTLegacyHoverEventSerializer.java b/src/main/java/com/hpfxd/pandaspigot/adventure/NBTLegacyHoverEventSerializer.java
+index 4f49118ca..bfca877dd 100644
+--- a/src/main/java/com/hpfxd/pandaspigot/adventure/NBTLegacyHoverEventSerializer.java
++++ b/src/main/java/com/hpfxd/pandaspigot/adventure/NBTLegacyHoverEventSerializer.java
+@@ -1,4 +1,58 @@
+ package com.hpfxd.pandaspigot.adventure;
+ 
+-public class NBTLegacyHoverEventSerializer {
++import net.kyori.adventure.key.Key;
++import net.kyori.adventure.nbt.api.BinaryTagHolder;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.event.HoverEvent;
++import net.kyori.adventure.text.serializer.json.LegacyHoverEventSerializer;
++import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
++import net.kyori.adventure.util.Codec;
++import net.minecraft.server.MojangsonParseException;
++import net.minecraft.server.MojangsonParser;
++import net.minecraft.server.NBTBase;
++import net.minecraft.server.NBTTagCompound;
++
++import java.io.IOException;
++
++public final class NBTLegacyHoverEventSerializer implements LegacyHoverEventSerializer {
++
++    public static final Codec<NBTTagCompound, String, MojangsonParseException, RuntimeException> SNBT_CODEC = Codec.codec(MojangsonParser::parse, NBTBase::toString);
++
++    public static final String ITEM_TYPE = "id";
++    public static final String ITEM_COUNT = "Count";
++    public static final String ITEM_TAG = "tag";
++
++    @Override
++    public HoverEvent.ShowItem deserializeShowItem(Component input) throws IOException {
++        String raw = PlainTextComponentSerializer.plainText().serialize(input);
++
++        try {
++            NBTTagCompound contents = SNBT_CODEC.decode(raw);
++            NBTTagCompound tag = contents.getCompound(ITEM_TAG);
++
++            return HoverEvent.ShowItem.showItem(
++                Key.key(contents.getString(ITEM_TYPE)),
++                contents.hasKey(ITEM_COUNT) ? contents.getByte(ITEM_COUNT) : 1,
++                tag.isEmpty() ? null : BinaryTagHolder.encode(tag, SNBT_CODEC)
++            );
++        } catch (MojangsonParseException ex) {
++            throw new IOException(ex);
++        }
++    }
++
++    @Override
++    public Component serializeShowItem(HoverEvent.ShowItem input) throws IOException {
++        return null;
++    }
++
++    @Override
++    public HoverEvent.ShowEntity deserializeShowEntity(Component input, Codec.Decoder<Component, String, ? extends RuntimeException> componentDecoder) throws IOException {
++        return null;
++    }
++
++    @Override
++    public Component serializeShowEntity(HoverEvent.ShowEntity input, Codec.Encoder<Component, String, ? extends RuntimeException> componentEncoder) throws IOException {
++        return null;
++    }
++
+ }
+diff --git a/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java b/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
+index ce1e53b46..b2a03a67c 100644
+--- a/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
++++ b/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
+@@ -1,4 +1,59 @@
+ package com.hpfxd.pandaspigot.adventure;
+ 
+-public class PandaAdventure {
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
++import net.kyori.option.OptionState;
++import net.minecraft.server.IChatBaseComponent;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public final class PandaAdventure {
++
++    public static final WrapperAwareSerializer WRAPPER_AWARE_SERIALIZER = new WrapperAwareSerializer();
++    public static final GsonComponentSerializer GSON = GsonComponentSerializer.builder()
++        .downsampleColors()
++        .legacyHoverEventSerializer(new NBTLegacyHoverEventSerializer())
++        .build();
++
++    private PandaAdventure() {}
++
++    public static Component asAdventure(IChatBaseComponent component) {
++        return GSON.serializer().fromJson(IChatBaseComponent.ChatSerializer.a(component), Component.class);
++    }
++
++    public static List<Component> asAdventure(List<IChatBaseComponent> components) {
++        List<Component> list = new ArrayList<>(components.size());
++
++        for (IChatBaseComponent component : components) {
++            list.add(asAdventure(component));
++        }
++
++        return list;
++    }
++
++    public static List<Component> asAdventureFromJson(List<String> jsons) {
++        List<Component> list = new ArrayList<>(jsons.size());
++
++        for (String json : jsons) {
++            list.add(GSON.deserialize(json));
++        }
++
++        return list;
++    }
++
++    public static List<String> asJson(List<Component> components) {
++        List<String> list = new ArrayList<>();
++
++        for (Component component : components) {
++            list.add(GSON.serialize(component));
++        }
++
++        return list;
++    }
++
++    public static IChatBaseComponent asVanilla(Component component) {
++
++    }
++
+ }
+diff --git a/src/main/java/com/hpfxd/pandaspigot/adventure/WrapperAwareSerializer.java b/src/main/java/com/hpfxd/pandaspigot/adventure/WrapperAwareSerializer.java
+index ed043acab..4acc5b3f2 100644
+--- a/src/main/java/com/hpfxd/pandaspigot/adventure/WrapperAwareSerializer.java
++++ b/src/main/java/com/hpfxd/pandaspigot/adventure/WrapperAwareSerializer.java
+@@ -1,4 +1,22 @@
+ package com.hpfxd.pandaspigot.adventure;
+ 
+-public class WrapperAwareSerializer {
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.serializer.ComponentSerializer;
++import net.minecraft.server.IChatBaseComponent;
++
++public class WrapperAwareSerializer implements ComponentSerializer<Component, Component, IChatBaseComponent> {
++
++    @Override
++    public Component deserialize(IChatBaseComponent input) {
++        if (input instanceof AdventureComponent)
++            return ((AdventureComponent) input).getWrapped();
++
++        return PandaAdventure.GSON.serializer().fromJson(IChatBaseComponent.ChatSerializer.a(input), Component.class);
++    }
++
++    @Override
++    public IChatBaseComponent serialize(Component component) {
++        return IChatBaseComponent.ChatSerializer.a(PandaAdventure.GSON.serialize(component));
++    }
++
+ }
