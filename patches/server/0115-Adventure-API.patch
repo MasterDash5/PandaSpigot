@@ -1,11 +1,11 @@
-From c68ae1b93ff13d5f51c0efba45b26b5d7316e5da Mon Sep 17 00:00:00 2001
+From 86e5e94413cb0ef412b31034783354af989a434e Mon Sep 17 00:00:00 2001
 From: MasterDash5 <constant4337@molecularmail.com>
-Date: Wed, 3 Sep 2025 14:51:06 -0600
+Date: Wed, 3 Sep 2025 17:03:44 -0600
 Subject: [PATCH] Adventure API
 
 ---
  .../NBTLegacyHoverEventSerializer.java        | 95 +++++++++++++++++++
- .../pandaspigot/adventure/PandaAdventure.java | 74 +++++++++++++++
+ .../pandaspigot/adventure/PandaAdventure.java | 79 +++++++++++++++
  .../adventure/VanillaChatMessageLogic.java    | 46 +++++++++
  .../net/minecraft/server/EntityPlayer.java    | 19 ++--
  .../net/minecraft/server/LoginListener.java   | 18 +++-
@@ -23,7 +23,7 @@ Subject: [PATCH] Adventure API
  .../craftbukkit/inventory/CraftMetaItem.java  | 24 +++++
  .../scoreboard/CraftObjective.java            |  8 ++
  .../craftbukkit/scoreboard/CraftTeam.java     | 17 ++++
- 19 files changed, 514 insertions(+), 75 deletions(-)
+ 19 files changed, 519 insertions(+), 75 deletions(-)
  create mode 100644 src/main/java/com/hpfxd/pandaspigot/adventure/NBTLegacyHoverEventSerializer.java
  create mode 100644 src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
  create mode 100644 src/main/java/com/hpfxd/pandaspigot/adventure/VanillaChatMessageLogic.java
@@ -131,14 +131,15 @@ index 000000000..7e1ab1774
 +}
 diff --git a/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java b/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
 new file mode 100644
-index 000000000..8c657ab00
+index 000000000..6d9273cbd
 --- /dev/null
 +++ b/src/main/java/com/hpfxd/pandaspigot/adventure/PandaAdventure.java
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,79 @@
 +package com.hpfxd.pandaspigot.adventure;
 +
 +import net.kyori.adventure.text.Component;
-+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
++import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
++import net.kyori.adventure.text.serializer.json.JSONOptions;
 +import net.md_5.bungee.api.chat.BaseComponent;
 +import net.minecraft.server.IChatBaseComponent;
 +
@@ -147,19 +148,23 @@ index 000000000..8c657ab00
 +
 +public class PandaAdventure {
 +
-+    public static final GsonComponentSerializer GSON = GsonComponentSerializer.builder()
-+        .downsampleColors()
++    public static final JSONComponentSerializer SERIALIZER = JSONComponentSerializer.builder()
++        .editOptions(options -> {
++            options.value(JSONOptions.EMIT_RGB, false);
++            options.value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.VALUE_FIELD);
++            options.value(JSONOptions.EMIT_CLICK_EVENT_TYPE, JSONOptions.ClickEventValueMode.CAMEL_CASE);
++        })
 +        .legacyHoverEventSerializer(new NBTLegacyHoverEventSerializer())
 +        .build();
 +
 +    private PandaAdventure() {}
 +
 +    public static Component asAdventure(IChatBaseComponent component) {
-+        return GSON.serializer().fromJson(IChatBaseComponent.ChatSerializer.a(component), Component.class);
++        return SERIALIZER.deserialize(IChatBaseComponent.ChatSerializer.a(component));
 +    }
 +
 +    public static Component asAdventure(BaseComponent[] components) {
-+        return GSON.serializer().fromJson(net.md_5.bungee.chat.ComponentSerializer.toString(components), Component.class);
++        return SERIALIZER.deserialize(net.md_5.bungee.chat.ComponentSerializer.toString(components));
 +    }
 +
 +    public static List<Component> asAdventure(List<IChatBaseComponent> components) {
@@ -176,7 +181,7 @@ index 000000000..8c657ab00
 +        List<Component> list = new ArrayList<>(jsons.size());
 +
 +        for (String json : jsons) {
-+            list.add(GSON.deserialize(json));
++            list.add(SERIALIZER.deserialize(json));
 +        }
 +
 +        return list;
@@ -186,14 +191,14 @@ index 000000000..8c657ab00
 +        List<String> list = new ArrayList<>();
 +
 +        for (Component component : components) {
-+            list.add(GSON.serialize(component));
++            list.add(SERIALIZER.serialize(component));
 +        }
 +
 +        return list;
 +    }
 +
 +    public static IChatBaseComponent asVanilla(Component component) {
-+        return IChatBaseComponent.ChatSerializer.a(GSON.serializer().toJson(component));
++        return IChatBaseComponent.ChatSerializer.a(SERIALIZER.serialize(component));
 +    }
 +
 +    public static List<IChatBaseComponent> asVanilla(List<Component> components) {
@@ -992,7 +997,7 @@ index ae3341c4e..c19545bac 100644
          return builder;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-index eaaa6a11a..72467176e 100644
+index eaaa6a11a..bf31b0fe8 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 @@ -647,6 +647,18 @@ class CraftMetaItem implements ItemMeta, Repairable {
@@ -1002,12 +1007,12 @@ index eaaa6a11a..72467176e 100644
 +    // PandaSpigot start - Adventure
 +    @Override
 +    public net.kyori.adventure.text.Component displayName() {
-+        return com.hpfxd.pandaspigot.adventure.PandaAdventure.GSON.deserialize(displayName);
++        return com.hpfxd.pandaspigot.adventure.PandaAdventure.SERIALIZER.deserialize(displayName);
 +    }
 +
 +    @Override
 +    public void displayName(net.kyori.adventure.text.Component displayName) {
-+        this.displayName = com.hpfxd.pandaspigot.adventure.PandaAdventure.GSON.serialize(displayName);
++        this.displayName = com.hpfxd.pandaspigot.adventure.PandaAdventure.SERIALIZER.serialize(displayName);
 +    }
 +    // PandaSpigot end - Adventure
 +
